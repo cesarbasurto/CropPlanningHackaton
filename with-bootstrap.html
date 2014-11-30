@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Awesome Markers Example: With Bootstrap</title>
+        <meta charset="utf-8" />
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <link href="http://netdna.bootstrapcdn.com/font-awesome/4.0.0/css/font-awesome.css" rel="stylesheet">
+        <!-- Latest compiled and minified CSS -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css">
+
+        <!-- Optional theme -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap-theme.min.css">
+
+
+        <link rel="stylesheet" href="js/awesome-markers/leaflet.awesome-markers.css">
+
+        <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+        <!--[if lte IE 8]>
+            <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.4/leaflet.ie.css" />
+        <![endif]-->
+        <!-- Latest compiled and minified JavaScript -->
+        <script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js"></script>
+        <script src="js/leaflet/leaflet.js"></script>
+        <script src="js/awesome-markers/leaflet.awesome-markers.js"></script>
+        <style>
+            body {
+                padding: 0;
+                margin: 0;
+            }
+            div.fill {
+                width: 100%;
+                height: 100%;
+            }
+            #map {
+                position:absolute; left:0%; top: 0px; width: 100%; height: 100%
+            }
+
+        </style>
+
+
+    </head>
+    <body>
+
+        <div id="map" >
+        </div>	
+        <div id="grafica" style="position:absolute; left:50%; top: 0px; width: 0%; height: 100%">
+
+        </div>
+
+
+
+        <script>
+
+            var map = L.map('map').setView([51.932994, 4.509373], 14);
+            var marker;
+            var popup = L.popup();
+
+            var dividir = function () {
+                $("#map").css("top", "0%");
+                $("#map").css("left", "0%");
+                $("#map").css("width", "50%");
+                $("#map").css("height", "100%");
+                $("#grafica").css("left", "50%");
+                $("#grafica").css("top", "0%");
+                $("#grafica").css("width", "50%");
+                $("#grafica").css("height", "100%");
+            }
+
+            $(window).resize(function () {
+                if ($(window).width() < 720) {
+                    $("#grafica").css("top", "0%");
+                    $("#map").css("width", "100%");
+                    $("#map").css("height", "50%");
+                    $("#grafica").css("top", "50%");
+                    $("#grafica").css("width", "100%");
+                    $("#grafica").css("height", "50%");
+                } else {
+                    dividir();
+                }
+            });
+
+
+            L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                        '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                        'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                id: 'examples.map-i875mjb7'
+            }).addTo(map);
+
+
+
+
+            function onMapClick(e) {
+                dividir();
+                if (map.hasLayer(marker)) {
+                    map.removeLayer(marker);
+                }
+                marker = new L.Marker(e.latlng, {icon: L.AwesomeMarkers.icon({icon: 'link', prefix: 'glyphicon', markerColor: 'red', spin: true})});
+                map.addLayer(marker);
+                //marker.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
+                map.setView(e.latlng, 14, {animation: true});
+                map.invalidateSize();
+            }
+
+            map.on('click', onMapClick);
+        </script>
+    </body>
+</html>

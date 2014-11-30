@@ -1,0 +1,10 @@
+{
+  "app": {
+    "name": "i18next",
+    "home": "Planeando tu cultivo",
+    "lang": "<a class='glyphicon glyphicon-subtitles dropdown' href='?setLng=en'> EN</a>",
+    "user": "Yo",
+    "page1": "Page One",
+    "page2": "Page Two"
+  }
+}

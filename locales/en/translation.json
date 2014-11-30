@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "i18next",
+    "home": "Crop Planning",
+    "lang": "<a class='glyphicon glyphicon-subtitles dropdown' href='?setLng=es'> ES</a>",
+    "usertext": "Me",
+    "user":{
+        "porfile":"porfile",
+        "messages":"messages",
+        "settings":"settings",
+        "logout":"logout"
+    },
+    "temperature":"Temp",
+    "mintemp":"Min Temp",
+    "maxtemp":"Max Temp",
+    "rain":"Rain",
+    "Precipitation":"Precipitation",
+    "forecast": "Weather forecast",
+    "dashboard":"My crop",
+    "history":"Blog",
+    "page1": "Page One",
+    "page2": "Page Two"
+  }
+}

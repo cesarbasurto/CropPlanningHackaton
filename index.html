@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="">
+        <meta name="author" content="">
+
+        <title>Crop Planning</title>
+
+        <!-- Bootstrap Core CSS -->
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+
+        <!-- Custom CSS -->
+        <link href="css/sb-admin.css" rel="stylesheet">
+
+        <!-- Morris Charts CSS -->
+        <link href="css/plugins/morris.css" rel="stylesheet">
+
+        <!-- Custom Fonts -->
+        <link href="font-awesome-4.1.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+        <link rel="stylesheet" href="js/awesome-markers/leaflet.awesome-markers.css">
+
+        <link rel="stylesheet" href="js/leaflet/leaflet.css" />
+
+        <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+        <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+        <!--[if lt IE 9]>
+            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+        <![endif]-->
+
+        <style type="text/css">
+            ${demo.css}
+        </style>
+
+
+
+        <!-- jQuery -->
+        <script src="js/jquery.js"></script>
+
+        <!-- Bootstrap Core JavaScript -->
+        <script src="js/bootstrap.min.js"></script>
+
+
+        <script type="text/javascript" src="js/i18next-1.7.4/i18next-1.7.4.min.js"></script>
+        <script type="text/javascript" src="js/moment.min.js"></script>
+        <script src="js/highcharts/highcharts.js"></script>
+        <script src="js/highcharts/highcharts-more.js"></script>
+        <script src="js/leaflet/leaflet.js"></script>
+        <script src="js/awesome-markers/leaflet.awesome-markers.js"></script>
+
+        <script src="js/suncalc.js"></script>
+
+        <style>
+
+            html, body, #main, #map {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+            }
+            #main{
+                margin-top: 50px;
+                position: fixed;
+            }
+
+            #page-wrapper, #page-wrapper.container-fluid{
+                width: 100%; height: 100%;
+            }
+
+            #page-wrapper {
+                float: right;
+                display: none;
+                overflow: auto;
+            }
+
+            #map {
+                width: 100%; height: 100%;
+                display: inline-block;
+
+            }
+
+            #carousel-panel-generic{
+                position: absolute;
+                bottom:20px;
+                left: -5px;
+                z-index: 40;
+            }
+
+            .carousel-control.left, .carousel-control.right {
+                background-image: none;
+                background-repeat: repeat-x;
+            }
+
+        </style>
+
+        <script>
+
+            var time_zone = 1000 * (new Date().getTimezoneOffset()) * (-60);
+            var selectedLocation;
+            var plant_start;
+            var plant_end;
+            var harvest_start;
+            var harvest_end;
+
+            i18n.init(function (t) {
+                // translate nav
+                $(document).i18n();
+            });
+            $(function () {
+                $("#main").css('height', $(window).height() - $('#navbnar').height());
+
+
+            });
+
+            function getUrlParameter(sParam)
+            {
+                var sPageURL = window.location.search.substring(1);
+                var sURLVariables = sPageURL.split('&');
+                for (var i = 0; i < sURLVariables.length; i++)
+                {
+                    var sParameterName = sURLVariables[i].split('=');
+                    if (sParameterName[0] === sParam)
+                    {
+                        return sParameterName[1];
+                    }
+                }
+            }
+
+            function actualizarCalendario(data_point) {
+
+
+                var m = moment(new Date().getFullYear() + "-01-01").add(data_point.plant_start, 'days').toDate();
+                plant_start = Date.UTC(m.getFullYear(), m.getMonth() + 1, m.getDate());
+
+                m = moment(new Date().getFullYear() + "-01-01").add(data_point.plant_end, 'days').toDate();
+                plant_end = Date.UTC(m.getFullYear(), m.getMonth() + 1, m.getDate());
+
+                m = moment(new Date().getFullYear() + "-01-01").add(data_point.harvest_start, 'days').toDate();
+                harvest_start = Date.UTC(m.getFullYear(), m.getMonth() + 1, m.getDate());
+
+                m = moment(new Date().getFullYear() + "-01-01").add(data_point.harvest_end, 'days').toDate();
+                harvest_end = Date.UTC(m.getFullYear(), m.getMonth() + 1, m.getDate());
+
+                var phase = SunCalc.getMoonIllumination(plant_start - (1000 * 3600 * 24 * 30)).phase;
+                var aimg = (phase < 0.1875 ? 1 : (phase < 0.3125 ? 2 : (phase < 0.4375 ? 3 : (phase < 0.5625 ? 4 : (phase < 0.6875 ? 5 : (phase < 0.8125 ? 6 : (phase < 0.9375 ? 7 : 8)))))));
+
+                phase = SunCalc.getMoonIllumination(plant_end - (1000 * 3600 * 24 * 30)).phase;
+                var bimg = (phase < 0.1875 ? 1 : (phase < 0.3125 ? 2 : (phase < 0.4375 ? 3 : (phase < 0.5625 ? 4 : (phase < 0.6875 ? 5 : (phase < 0.8125 ? 6 : (phase < 0.9375 ? 7 : 8)))))));
+
+                phase = SunCalc.getMoonIllumination(harvest_start - (1000 * 3600 * 24 * 30)).phase;
+                var cimg = (phase < 0.1875 ? 1 : (phase < 0.3125 ? 2 : (phase < 0.4375 ? 3 : (phase < 0.5625 ? 4 : (phase < 0.6875 ? 5 : (phase < 0.8125 ? 6 : (phase < 0.9375 ? 7 : 8)))))));
+
+                phase = SunCalc.getMoonIllumination(harvest_end - (1000 * 3600 * 24 * 30)).phase;
+                var dimg = (phase < 0.1875 ? 1 : (phase < 0.3125 ? 2 : (phase < 0.4375 ? 3 : (phase < 0.5625 ? 4 : (phase < 0.6875 ? 5 : (phase < 0.8125 ? 6 : (phase < 0.9375 ? 7 : 8)))))));
+
+                $('#calendario').highcharts({
+                    title: {
+                        text: '',
+                        x: -20, //center
+                        floating: true
+                    },
+                    chart: {
+                        type: 'area'
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        tickInterval: 30 * 24 * 36e5, // one week
+                        dateTimeLabelFormats: {
+                            day: '%e of %b'
+                        },
+                        labels: {
+                            //format: '{value:Week %W/%Y}',
+                            //format: '%e of %b',
+                            align: 'right',
+                            rotation: -30
+                        },
+                        min: plant_start - (1000 * 3600 * 24 * 30),
+                        max: harvest_end + (1000 * 3600 * 24 * 30),
+                        plotLines: [{
+                                color: 'red',
+                                width: 2,
+                                value: new Date(),
+                                dashStyle: 'longdashdot',
+                                zIndex: 99
+                            }]
+                    },
+                    yAxis: {
+                        title: {
+                            text: ''
+                        },
+                        labels: {
+                            enabled: false
+                        },
+                        gridLineWidth: 0,
+                        visible: false
+                    },
+                    series: [{
+                            data: [
+                                [plant_start, 30],
+                                [plant_end, 30]
+                            ],
+                            name: 'Siembra',
+                            lineWidth: 0,
+                            color: '#B78F55',
+                            pointInterval: 7 * 24 * 3600 * 1000
+
+                        },
+                        {
+                            data: [
+                                [harvest_start, 30],
+                                [harvest_end, 30]
+                            ],
+                            name: 'Cosecha',
+                            lineWidth: 0,
+                            color: '#5DAA4E',
+                            pointInterval: 7 * 24 * 3600 * 1000
+
+                        },
+                        {
+                            data: [
+                                {
+                                    x: plant_start,
+                                    y: 30,
+                                    marker: {
+                                        symbol: 'url(img/1f31' + aimg + '.png)',
+                                        width: 16
+                                    }
+                                }
+                            ],
+                            showInLegend: false
+                        },
+                        {
+                            data: [
+                                {
+                                    x: plant_end,
+                                    y: 30,
+                                    marker: {
+                                        symbol: 'url(img/1f31' + bimg + '.png)',
+                                        width: 16
+                                    }
+                                }
+                            ],
+                            showInLegend: false
+                        },
+                        {
+                            data: [
+                                {
+                                    x: harvest_start,
+                                    y: 30,
+                                    marker: {
+                                        symbol: 'url(img/1f31' + cimg + '.png)',
+                                        width: 16
+                                    }
+                                }
+                            ],
+                            showInLegend: false
+                        },
+                        {
+                            data: [
+                                {
+                                    x: harvest_end,
+                                    y: 30,
+                                    marker: {
+                                        symbol: 'url(img/1f31' + dimg + '.png)',
+                                        width: 16
+                                    }
+                                }
+                            ],
+                            showInLegend: false
+                        }],
+                    tooltip: {
+                        //pointFormat: '{series.name} {point.x}'
+                        format: '%e of %b'
+                    }
+
+                });
+            }
+
+            function actualizarClimatologia(data_points) {
+                var time = new Array();
+                var tmp = new Array();
+                var tmpr = new Array();
+
+                var m1 = moment(plant_start - (1000 * 3600 * 24 * 30));
+                var m2 = moment(harvest_end + (1000 * 3600 * 24 * 30));
+                var montCount = m2.diff(m1, 'months');
+
+                for (var i = m1.month() + 1; i < montCount + m1.month(); i++) {
+
+
+                    var dt = Date.UTC(new Date().getFullYear(), i, 15);
+                    time.push(dt);
+                    tmp.push([dt, data_points.temperatra_media[0]["band" + i]]);
+
+                    var tmpi = data_points.temperatra_minima[0]["band" + i];
+                    var tmpa = data_points.temperatra_maxima[0]["band" + i];
+                    tmpr.push([dt, tmpi, tmpa]);
+                }
+
+                $('#climatologia').highcharts({
+                    chart: {
+                        //    zoomType: 'xy'
+                        type: 'column'
+                    },
+                    title: "Climatología",
+                    xAxis: {
+                        labels: {
+                            formatter: function () {
+                                return Highcharts.dateFormat('%d %b', this.value);
+                            }
+                        }
+                    },
+                    yAxis: [
+                        {
+                            labels: {
+                                format: '{value}°C',
+                                style: {
+                                    color: 'blue'
+                                }
+                            },
+                            title: {
+                                text: i18n.t("app.temperature"),
+                                style: {
+                                    color: 'blue'
+                                }
+                            }
+                        }],
+                    tooltip: {
+                        useHTML: true,
+                        shared: true,
+                        formatter: function () {
+                            var s = '<small>' + Highcharts.dateFormat('%d %b', this.x) + '</small><table>';
+                            $.each(this.points, function (i, point) {
+                                //console.log(point);
+                                if (point.y != 0)
+                                    s += '<tr><td style="color:' + point.series.color + '">' + point.series.name + ': </td>' +
+                                            '<td style="text-align: right"><b>' + point.y + '</b></td></tr>';
+                            }
+                            );
+                            return s + '</table>';
+                        }
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: 'normal'
+                        }
+                    },
+                    legend: NaN,
+                    series: [
+                        {
+                            name: i18n.t("app.temperature"),
+                            type: 'spline',
+                            color: 'blue',
+                            data: tmp
+                        },
+                        {
+                            name: i18n.t("app.mintemp"),
+                            data: tmpr,
+                            type: 'arearange',
+                            lineWidth: 0,
+                            linkedTo: ':previous',
+                            color: Highcharts.getOptions().colors[0],
+                            fillOpacity: 0.3,
+                            zIndex: 0
+                        }
+                    ]
+                });
+            }
+
+            function verPronostico() {
+                window.location.href = 'forecast.html?LONG=' + selectedLocation.latlng.lng + '&LAT=' + selectedLocation.latlng.lat;
+            }
+
+            function showDailyChart(daily)
+            {
+
+                var time = new Array();
+                var tmp = new Array();
+                var tmpr = new Array();
+                var tmpm = new Array();
+                var rain = new Array();
+                var snow = new Array();
+                //var prcp = new Array();
+                //var wind = new Array();
+
+
+                for (var i = 0; i < daily.length - 1; i++) {
+
+                    //tmp.push(Math.round(10 * (daily[i].temp.day)) / 10);
+                    tmp.push(daily[i].temp.day);
+                    var dt = new Date(daily[i].dt * 1000 + time_zone);
+                    time.push(dt);
+
+                    var tmpi = Math.round(10 * (daily[i].temp.min)) / 10;
+                    var tmpa = Math.round(10 * (daily[i].temp.max)) / 10;
+                    tmpr.push([tmpi, tmpa]);
+
+
+                    if (daily[i]['rain']) {
+                        rain.push(Math.round(daily[i]['rain'] * 100) / 100);
+                    } else {
+                        rain.push(0);
+                    }
+                    if (daily[i]['snow']) {
+                        snow.push(Math.round(daily[i]['snow'] * 100) / 100);
+                    } else {
+                        snow.push(0);
+                    }
+                }
+
+
+                $('#forecast').highcharts({
+                    chart: {
+                        //    zoomType: 'xy'
+                        type: 'column'
+                    },
+                    title: NaN,
+                    xAxis: {
+                        categories: time,
+                        labels: {
+                            formatter: function () {
+                                return Highcharts.dateFormat('%d %b', this.value);
+                            }
+                        }
+                    },
+                    yAxis: [
+                        {
+                            labels: {
+                                format: '{value}°C',
+                                style: {
+                                    color: 'blue'
+                                }
+                            },
+                            title: {
+                                text: i18n.t("app.temperature"),
+                                style: {
+                                    color: 'blue'
+                                }
+                            }
+                        }, {
+                            labels: {
+                                format: '{value} mm',
+                                style: {
+                                    color: '#909090'
+                                }
+                            },
+                            opposite: true,
+                            title: {
+                                text: i18n.t("app.Precipitation"),
+                                style: {
+                                    color: '#4572A7'
+                                }
+                            }
+                        }],
+                    tooltip: {
+                        useHTML: true,
+                        shared: true,
+                        formatter: function () {
+                            var s = '<small>' + Highcharts.dateFormat('%d %b', this.x) + '</small><table>';
+                            $.each(this.points, function (i, point) {
+                                //console.log(point);
+                                if (point.y != 0)
+                                    s += '<tr><td style="color:' + point.series.color + '">' + point.series.name + ': </td>' +
+                                            '<td style="text-align: right"><b>' + point.y + '</b></td></tr>';
+                            }
+                            );
+                            return s + '</table>';
+                        }
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: 'normal'
+                        }
+                    },
+                    legend: NaN,
+                    series: [
+                        {
+                            name: 'Snow',
+                            type: 'column',
+                            color: '#909090',
+                            yAxis: 1,
+                            data: snow,
+                            stack: 'precipitation',
+                        },
+                        {
+                            name: i18n.t("app.rain"),
+                            type: 'column',
+                            color: '#B0B0B0',
+                            yAxis: 1,
+                            data: rain,
+                            stack: 'precipitation'
+                        },
+                        {
+                            name: i18n.t("app.temperature"),
+                            type: 'spline',
+                            color: 'blue',
+                            data: tmp
+                        },
+                        {
+                            name: i18n.t("app.mintemp"),
+                            data: tmpr,
+                            type: 'arearange',
+                            lineWidth: 0,
+                            linkedTo: ':previous',
+                            color: Highcharts.getOptions().colors[0],
+                            fillOpacity: 0.3,
+                            zIndex: 0
+                        }
+                    ]
+                });
+            }
+            
+            function actualizarRendimiento(data_points) {
+                var time = new Array();
+                var tmp = new Array();
+                var tmpr = new Array();
+                var min_tmpr = new Array();
+                
+                var min_tmp = new Array();
+                var min_tmpr = new Array();
+
+                //var m1 = moment(plant_start - (1000 * 3600 * 24 * 30));
+                //var m2 = moment(harvest_end + (1000 * 3600 * 24 * 30));
+                
+                var m1 = moment('2014-01-01');
+                var m2 = moment('2014-12-31');
+                
+                var montCount = m2.diff(m1, 'months');
+
+                for (var i = m1.month() + 1; i < montCount + m1.month(); i++) {
+
+
+                    var dt = Date.UTC(new Date().getFullYear(), i, 15);
+                    time.push(dt);
+                    tmp.push([dt, data_points.temperatra_media[0]["band" + i]]);
+                    min_tmp.push([dt, data_points.min_temperatra_media[0]["band" + i]]);
+
+                    var tmpi = data_points.temperatra_minima[0]["band" + i];
+                    var tmpa = data_points.temperatra_maxima[0]["band" + i];
+                    tmpr.push([dt, tmpi, tmpa]);
+                    
+                    
+                    var min_tmpi = data_points.min_temperatra_minima[0]["band" + i];
+                    var min_tmpa = data_points.min_temperatra_maxima[0]["band" + i];
+                    min_tmpr.push([dt, min_tmpi, min_tmpa]);
+                    
+                    
+                }
+
+                $('#analogos').highcharts({
+                    chart: {
+                        //    zoomType: 'xy'
+                        type: 'column'
+                    },
+                    title: "Temperatura",
+                    xAxis: {
+                        labels: {
+                            formatter: function () {
+                                return Highcharts.dateFormat('%d %b', this.value);
+                            }
+                        }
+                    },
+                    yAxis: [
+                        {
+                            labels: {
+                                format: '{value}°C',
+                                style: {
+                                    color: 'green'
+                                }
+                            },
+                            title: {
+                                text: i18n.t("app.temperature"),
+                                style: {
+                                    color: 'green'
+                                }
+                            }
+                        }],
+                    tooltip: {
+                        useHTML: true,
+                        shared: true,
+                        formatter: function () {
+                            var s = '<small>' + Highcharts.dateFormat('%d %b', this.x) + '</small><table>';
+                            $.each(this.points, function (i, point) {
+                                //console.log(point);
+                                if (point.y != 0)
+                                    s += '<tr><td style="color:' + point.series.color + '">' + point.series.name + ': </td>' +
+                                            '<td style="text-align: right"><b>' + point.y + '</b></td></tr>';
+                            }
+                            );
+                            return s + '</table>';
+                        }
+                    },
+                    plotOptions: {
+                        column: {
+                            stacking: 'normal'
+                        }
+                    },
+                    legend: NaN,
+                    series: [
+                        {
+                            name: i18n.t("app.temperature"),
+                            type: 'spline',
+                            color: 'green',
+                            data: tmp
+                        },
+                        {
+                            name: i18n.t("app.temperature"),
+                            type: 'spline',
+                            color: 'red',
+                            data: min_tmp
+                        },
+                        {
+                            name: i18n.t("app.mintemp"),
+                            data: min_tmpr,
+                            type: 'arearange',
+                            lineWidth: 0,
+                            linkedTo: ':previous',
+                            color: '#FFCCCC',
+                            fillOpacity: 0.4,
+                            zIndex: 0
+                        },
+                        {
+                            name: i18n.t("app.mintemp"),
+                            data: tmpr,
+                            type: 'arearange',
+                            lineWidth: 0,
+                            linkedTo: ':previous',
+                            color: Highcharts.getOptions().colors[0],
+                            fillOpacity: 0.3,
+                            zIndex: 0
+                        }
+                        
+                    ]
+                });
+            }
+        </script>
+
+    </head>
+
+    <body onload="iniciar()">
+
+        <!--        <div id="wrapper">-->
+
+        <!-- Navigation -->
+        <nav id="navbnar" class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+
+                <a class="navbar-brand" href="index.html"  data-i18n="app.home"></a>
+                <ul class="nav navbar-right top-nav">
+                    <li data-i18n="[html]app.lang;"></li>
+
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-user"></i> <span data-i18n="app.usertext"></span> <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#"><i class="fa fa-fw fa-user"></i> <span data-i18n="app.user.porfile"></span></a>
+                            </li>
+                            <li>
+                                <!--                                http://40.40.30.4:8080/SERVICIOS/SendMessage-->
+                                <a href="#" target="_blank"><i class="fa fa-fw fa-envelope"></i> <span data-i18n="app.user.messages"></span></a>
+                            </li>
+                            <li>
+                                <a href="#"><i class="fa fa-fw fa-gear"></i> <span data-i18n="app.user.settings"></span></a>
+                            </li>
+                            <li class="divider"></li>
+                            <li>
+                                <a href="#"><i class="fa fa-fw fa-power-off"></i> <span data-i18n="app.user.logout"></span></a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <!-- Top Menu Items -->
+
+            <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
+
+            <!-- /.navbar-collapse -->
+        </nav>
+        <div id="main">
+            <div id="map">
+                <div id="carousel-panel-generic"  class="col-md-2">
+                    <div id="myCarousel" class="carousel slide">
+                        <div class="carousel-inner">
+                            <div class="item active" id="mapbox">
+                                <div class="row-fluid">
+                                    <div class="col-md-12" id="base_osm_calles">
+                                        <a href="#" class="thumbnail"><img src="img/mapbox.png"  style="max-height:120px;"></a>
+                                        <center><h5>Mapbox</h5></center>
+                                    </div>
+                                </div><!--/row-fluid-->
+                            </div><!--/item-->
+                            <div class="item"  id="1">
+                                <div class="row-fluid">
+                                    <div class="col-md-12" >
+                                        <center><h5>Crop Climate Effects Climate Global Food Production</h5></center></div>
+                                    <a href="#" class="thumbnail"><img src="http://sedac.ciesin.columbia.edu/geoserver/wms?request=GetLegendGraphic&format=image%2Fpng&layer=crop-climate-effects-climate-global-food-production&width=15&height=15&legend_options=border:false;mx:0.05;my:0.02;dx:0.2;dy:0.07;fontSize:11;bandInfo:false;"></a>
+
+                                </div> 
+                            </div><!--/row-fluid-->
+                            <div class="item"  id="2">
+                                <div class="row-fluid">
+                                    <div class="col-md-12" >
+                                        <center><h5>Crop Climate Effects Climate Global Food Production of RICE</h5></center></div>
+                                    <a href="#" class="thumbnail"><img src="http://sedac.ciesin.columbia.edu/geoserver/wms?request=GetLegendGraphic&format=image%2Fpng&layer=crop-climate-effects-climate-global-food-production&width=15&height=15&legend_options=border:false;mx:0.05;my:0.02;dx:0.2;dy:0.07;fontSize:11;bandInfo:false;&style=crop-climate-effects-climate-global-food-production:rice"></a>
+
+                                </div> 
+                            </div><!--/row-fluid-->
+                        </div><!--/item-->
+                    </div><!--/carousel-inner-->
+                    <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
+                        <span class="glyphicon glyphicon-chevron-left"></span>
+                    </a>
+                    <a class="right carousel-control" href="#myCarousel" role="button" data-slide="next">
+                        <span class="glyphicon glyphicon-chevron-right"></span>
+                    </a>
+                </div>
+            </div>
+
+            <div id="page-wrapper">
+                <div id="carousel-example-generic" class="carousel slide" data-ride="carousel" data-interval="99999990">
+                    <!-- Indicators -->
+                    <ol class="carousel-indicators">
+                        <li data-target="#carousel-example-generic" data-slide-to="0" class="active"></li>
+                        <li data-target="#carousel-example-generic" data-slide-to="1"></li>
+                        <li data-target="#carousel-example-generic" data-slide-to="2"></li>
+                    </ol>
+
+                    <!-- Wrapper for slides -->
+                    <div class="carousel-inner" role="listbox">
+                        <div class="item active">
+                            <div class="panel panel-default" id="climatologia_panel">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title"><i class="fa fa-long-arrow-right fa-fw"></i> Calendario Agricola</h3>
+                                </div>
+                                <div class="panel-body" id="graph-container">
+                                    <div id="calendario" style="height:150px;"></div>  
+                                    <div id="climatologia" style="height:200px;"></div>  
+                                    <div class="text-right">
+                                        <a href="#" onclick="verPronostico()" data-i18n="app.forecast"> <i class="fa fa-arrow-circle-right"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="item">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title"><i class="fa fa-long-arrow-right fa-fw"></i> Temperatura en los años de mayor rendimiento</h3>
+                                </div>
+                                <div class="panel-body" >
+                                    <div id="analogos" style="height: 350px; margin: 0 auto" ></div>
+
+                                    <div class="text-right">
+                                        <!--                                        <a href="#">View Details <i class="fa fa-arrow-circle-right"></i></a>-->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="item">
+                            <div class="panel panel-default">
+                                <div class="panel-heading">
+                                    <h3 class="panel-title"><i class="fa fa-long-arrow-right fa-fw"></i> Pronostico del clima prox. 10 días</h3>
+                                </div>
+                                <div class="panel-body" >
+                                    <div id="forecast" style="height: 350px; margin: 0 auto" ></div>
+
+                                    <div class="text-right">
+                                        <!--                                        <a href="#">View Details <i class="fa fa-arrow-circle-right"></i></a>-->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                    <!-- Controls -->
+                    <a class="left carousel-control" href="#carousel-example-generic" role="button" data-slide="prev">
+                        <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
+                        <span class="sr-only">Previous</span>
+                    </a>
+                    <a class="right carousel-control" href="#carousel-example-generic" role="button" data-slide="next">
+                        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
+                        <span class="sr-only">Next</span>
+                    </a>
+                </div>
+                <!-- /.container-fluid -->
+
+            </div>
+        </div>
+        <!-- /#page-wrapper -->
+
+        <!--        </div>-->
+        <!-- /#wrapper -->
+
+
+        <!--         Morris Charts JavaScript 
+                <script src="js/plugins/morris/raphael.min.js"></script>
+                <script src="js/plugins/morris/morris.min.js"></script>
+                <script src="js/plugins/morris/morris-data.js"></script>-->
+
+        <script>
+
+            var map = L.map('map').setView([4.932994, -74.509373], 5);
+            var marker;
+            var popup = L.popup();
+
+            var dividir = function () {
+                $("#map").css("top", "0%");
+                $("#map").css("left", "0%");
+                $("#map").css("width", ($(window).width() < 720) ? "100%" : "60%");
+                $("#map").css("height", ($(window).width() < 720) ? "40%" : "100%");
+                $("#page-wrapper").css("display", "inline-block");
+                $("#page-wrapper").css("left", "50%");
+                $("#page-wrapper").css("top", "0%");
+                $("#page-wrapper").css("width", ($(window).width() < 720) ? "100%" : "40%");
+                $("#page-wrapper").css("height", ($(window).width() < 720) ? "60%" : "100%");
+
+                //$("#climatologia_panel").css( "height", $("#page-wrapper").height());
+                //$("#climatologia_panel").find("#calendario").css( "height", 150);//$("#page-wrapper").height() * 0.4 - 80);
+                //$("#climatologia_panel").find("#calendario").css( "height", 400);//$("#page-wrapper").height() * 0.5 - 80);
+            };
+
+            function iniciar() {
+                $(window).resize(function () {
+                    if ($(window).width() < 720) {
+                        $("#page-wrapper").css("top", "0%");
+                        $("#map").css("width", "100%");
+                        $("#map").css("height", "40%");
+                        $("#page-wrapper").css("display", "inline-block");
+                        $("#page-wrapper").css("top", "40%");
+                        $("#page-wrapper").css("width", "100%");
+                        $("#page-wrapper").css("height", "60%");
+
+                    } else {
+                        dividir();
+                    }
+
+
+                });
+
+
+
+            }
+
+            L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
+                maxZoom: 8,
+                attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+                        '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+                        'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+                id: 'examples.map-20v6611k'
+            }).addTo(map);
+
+            function onMapClick(e) {
+                dividir();
+
+                $('#myCarousel').carousel({
+                    interval: false
+                });
+                $("#carousel-panel-generic").hide();
+                map.removeLayer(layerdinamico);
+                //layerdinamico.setOpacity(0);
+
+
+                selectedLocation = e;
+
+                if (map.hasLayer(marker)) {
+                    map.removeLayer(marker);
+                }
+                marker = new L.Marker(e.latlng, {icon: L.AwesomeMarkers.icon({icon: 'link', prefix: 'glyphicon', markerColor: 'red', spin: true})});
+                map.addLayer(marker);
+                //marker.bindPopup("<b>Hello world!</b><br />I am a popup.").openPopup();
+                map.panTo(e.latlng, {animation: true});
+                map.invalidateSize();
+
+                //Consulta pronosticos
+
+                $.ajax({
+                    url: 'http://api.openweathermap.org/data/2.5/forecast/daily?lat=' + (e.latlng.lat) + '&lon=' + (e.latlng.lng) + '&cnt=10&mode=json&lang=es&units=metric',
+                    type: 'GET',
+                    dataType: 'text',
+                    success: function (response) {
+                        if (response)
+                        {
+                            var res = eval('(' + response + ')');
+                            showDailyChart(res.list);
+                        }
+
+                    }
+                });
+
+                $.ajax({
+                    data: {
+                        op: 'ConsultaCalendario',
+                        LONG: e.latlng.lng,
+                        LAT: e.latlng.lat,
+                        RASTER: 'calendario_arroz'
+                    },
+                    url: 'http://40.40.30.4:8080/SERVICIOS/ServiceSQL',
+                    type: 'GET',
+                    dataType: 'text',
+                    success: function (response) {
+                        if (response)
+                        {
+                            var res = eval('(' + response + ')');
+
+                            if (res.hasOwnProperty('error')) {
+                                alert(res.descripcion);
+                            } else if (res.total > 0) {
+                                //res.data[0].
+
+                                var data = {
+                                    plant_start: res.data[0].band3,
+                                    plant_end: res.data[0].band4,
+                                    harvest_start: res.data[0].band7,
+                                    harvest_end: res.data[0].band8
+                                };
+                                actualizarCalendario(data);
+                            }
+                        }
+                    }
+                });
+
+                $.ajax({
+                    data: {
+                        op: 'ConsultaVariableClimatica',
+                        LONG: e.latlng.lng,
+                        LAT: e.latlng.lat
+                    },
+                    url: 'http://40.40.30.4:8080/SERVICIOS/ServiceSQL',
+                    type: 'GET',
+                    dataType: 'text',
+                    success: function (response) {
+                        if (response)
+                        {
+                            var res = eval('(' + response + ')');
+
+                            if (res.hasOwnProperty('error')) {
+                                alert(res.descripcion);
+                            } else if (res.total > 0) {
+                                //res.data[0].
+
+                                var data = {
+                                    temperatra_maxima: eval('(' + res.data[0].valor + ')'),
+                                    temperatra_media: eval('(' + res.data[1].valor + ')'),
+                                    temperatra_minima: eval('(' + res.data[2].valor + ')')
+                                };
+                                actualizarClimatologia(data);
+                            }
+                        }
+                    }
+                });
+                
+                
+                $.ajax({
+                    data: {
+                        op: 'ConsultaRendimientos',
+                        LONG: e.latlng.lng,
+                        LAT: e.latlng.lat
+                    },
+                    url: 'http://40.40.30.4:8080/SERVICIOS/ServiceSQL',
+                    type: 'GET',
+                    dataType: 'text',
+                    success: function (response) {
+                        if (response)
+                        {
+                            var res = eval('(' + response + ')');
+
+                            if (res.hasOwnProperty('error')) {
+                                alert(res.descripcion);
+                            } else if (res.total > 0) {
+                                //res.data[0].
+
+                                var data = {
+                                    temperatra_maxima: eval('(' + res.data[0].consulta_historico_temperatura + ')'),
+                                    temperatra_media: eval('(' + res.data[1].consulta_historico_temperatura + ')'),
+                                    temperatra_minima: eval('(' + res.data[2].consulta_historico_temperatura + ')'),
+                                    min_temperatra_maxima: eval('(' + res.data[3].consulta_historico_temperatura + ')'),
+                                    min_temperatra_media: eval('(' + res.data[4].consulta_historico_temperatura + ')'),
+                                    min_temperatra_minima: eval('(' + res.data[5].consulta_historico_temperatura + ')')
+                                };
+                                actualizarRendimiento(data);
+                            }
+                        }
+                    }
+                });
+
+            }
+
+            map.on('click', onMapClick);
+
+            layerdinamico = L.tileLayer.wms("http://sedac.ciesin.columbia.edu/geoserver/wms", {
+                layers: 'crop-climate:crop-climate-effects-climate-global-food-production',
+                format: 'image/png',
+                version: '1.1.0',
+                transparent: true,
+                attribution: "http://sedac.ciesin.columbia.edu",
+                styles: "",
+                tiled: true
+            });
+            map.addLayer(layerdinamico);
+
+
+
+            $('#myCarousel').carousel({
+                interval: 5000
+            });
+            var layerdinamico, limites;
+
+            $('#myCarousel').on('slide.bs.carousel', function (e) {
+
+                if ($("#carousel-panel-generic").css('display') === "none") {
+                    return;
+                }
+                var button = e.relatedTarget;
+                if (map.hasLayer(layerdinamico)) {
+                    map.removeLayer(layerdinamico);
+                }
+
+                if (button.id != "mapbox") {
+                    if (button.id == 1) {
+                        layerdinamico = L.tileLayer.wms("http://sedac.ciesin.columbia.edu/geoserver/wms", {
+                            layers: 'crop-climate:crop-climate-effects-climate-global-food-production',
+                            format: 'image/png',
+                            version: '1.1.0',
+                            transparent: true,
+                            attribution: "http://sedac.ciesin.columbia.edu",
+                            styles: "",
+                            tiled: true
+                        });
+                    } else if (button.id == 2) {
+                        layerdinamico = L.tileLayer.wms("http://sedac.ciesin.columbia.edu/geoserver/wms", {
+                            layers: 'crop-climate:crop-climate-effects-climate-global-food-production',
+                            format: 'image/png',
+                            version: '1.1.0',
+                            transparent: true,
+                            attribution: "http://sedac.ciesin.columbia.edu",
+                            styles: "crop-climate-effects-climate-global-food-production:rice",
+                            tiled: true
+                        });
+                    }
+                    map.addLayer(layerdinamico);
+                    if (map.hasLayer(limites)) {
+                        map.removeLayer(limites);
+                    }
+
+                }
+
+
+
+            });
+
+
+        </script>
+
+    </body>
+
+</html>

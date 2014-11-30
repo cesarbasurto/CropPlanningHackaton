@@ -1,0 +1,24 @@
+{
+  "app": {
+    "name": "i18next",
+    "home": "Planeando tu cultivo",
+    "lang": "<a class='glyphicon glyphicon-subtitles dropdown' href='?setLng=en'> EN</a>",
+    "usertext": "Yo",
+    "user":{
+        "porfile":"Perfil",
+        "messages":"Mensajes",
+        "settings":"Ajustes",
+        "logout":"Salir"
+    },
+    "temperature":"Temperatura",
+    "mintemp":"Temperatura mínima",
+    "maxtemp":"Temperatura máxima",
+    "rain":"Lluvia",
+    "Precipitation":"Precipitación",
+    "forecast": "Pronóstico del clima",
+    "dashboard":"Mi cultivo",
+    "history":"Blog",
+    "page1": "Page One",
+    "page2": "Page Two"
+  }
+}
